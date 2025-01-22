@@ -73,9 +73,25 @@ namespace Entities
             Console.WriteLine();
         }
 
-        public void VisualizarCliente()
+        public async Task VisualizarClienteAsync()
         {
+            Console.Clear();
+            ClientService clientService = new ClientService();
 
+            var clients = await clientService.SelectClientsAsync();
+
+            if (clients.Count == 0)
+            {
+                Console.WriteLine("NENHUM CLIENT ENCONTRADO!");
+            }
+            else
+            {
+                Console.WriteLine("CLIENTES:");
+                foreach (var client in clients)
+                {
+                    Console.WriteLine($"ID: {client.ID} | NOME: {client.Nome} | EMAIL: {client.Email}");
+                }
+            }
         }
 
         public async Task EditarClienteAsync()

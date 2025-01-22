@@ -3,7 +3,6 @@ using Repository;
 using Dapper;
 using System.Data;
 using System.Text;
-using MySqlX.XDevAPI.Common;
 
 namespace Services
 {
@@ -103,6 +102,24 @@ namespace Services
                 }
             }
             return result;
+        }
+
+        public async Task<List<Client>> SelectClientsAsync()
+        {
+            List<Client> list;
+
+            using (IDbConnection db = dbConnection.GetConnection())
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("SELECT id, nome, email");
+                sb.AppendLine("FROM cliente");
+
+                db.Open();
+                var result = await db.QueryAsync<Client>(sb.ToString());
+                list = result.ToList();
+                db.Close();
+            }
+                return list;
         }
 
         public async Task<bool> UpdateAsync(int idClient, string? name, string? email)

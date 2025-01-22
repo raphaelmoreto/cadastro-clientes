@@ -27,7 +27,7 @@ namespace cadastro_clientes
                             client.AdicionarClienteAsync();
                             break;
                         case 2:
-                            client.VisualizarCliente();
+                            client.VisualizarClienteAsync();
                             break;
                         case 3:
                             client.EditarClienteAsync();
