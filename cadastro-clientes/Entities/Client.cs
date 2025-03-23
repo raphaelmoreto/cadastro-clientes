@@ -13,6 +13,10 @@ namespace Entities
         //DECLARA UM CAMPO PRIVADO QUE ARMAZENA UMA INSTÂNCIA DA CLASSE "ClientService"
         private readonly ClientService _clientService;
 
+        public Client()
+        {
+        }
+
         public Client(ClientService clientService)
         {
             _clientService = clientService;
@@ -149,7 +153,7 @@ namespace Entities
                                 {
                                     var responseSelectEmail = await _clientService.SelectEmailAsync(email);
 
-                                    if (!responseSelectEmail)
+                                    if (responseSelectEmail)
                                     {
                                         Console.WriteLine("EMAIL JÁ É UTILIZADO POR OUTRO CLIENTE.");
                                         return;

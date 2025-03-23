@@ -32,9 +32,8 @@ namespace Services
                 email,
             };
 
-            //O "is null" NO FINAL DA LINHA VERIFICA SE O RESULTADO DA QUERY É "null"
-            bool result = db.ExecuteScalarAsync<int?>(sb.ToString(), parameters) is null;
-            return result;
+            var result = db.QueryFirstOrDefault<string>(sb.ToString(), parameters);
+            return result != null;
         }
 
         public async Task<bool> SelectIdAsync(int idClient)
@@ -51,9 +50,10 @@ namespace Services
                 id = idClient,
             };
 
-            bool result = db.ExecuteScalarAsync<int?>(sb.ToString(), parameters) is null;
-            return result;
-    }
+            int? id = db.QueryFirstOrDefault<int?>(sb.ToString(), parameters);
+
+            return id.HasValue;
+        }
 
         public async Task<bool> InsertAsync(Client client)
         {
@@ -85,16 +85,24 @@ namespace Services
 
         public async Task<IEnumerable<Client>> SelectClientsAsync()
         {
-            using IDbConnection db = _dbConnection.GetConnection();
-            
-            var sb = new StringBuilder();
-            sb.AppendLine("SELECT id,");
-            sb.AppendLine("            nome,");
-            sb.AppendLine("            email");
-            sb.AppendLine("FROM cliente");
+            try
+            {
+                using IDbConnection db = _dbConnection.GetConnection();
 
-            var result = await db.QueryAsync<Client>(sb.ToString());
-            return result;
+                var sb = new StringBuilder();
+                sb.AppendLine("SELECT id,");
+                sb.AppendLine("            nome,");
+                sb.AppendLine("            email");
+                sb.AppendLine("FROM cliente");
+
+                var result = db.Query<Client>(sb.ToString());
+                return result;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                return Enumerable.Empty<Client>();
+            }
         }
 
         public async Task<bool> UpdateAsync(int idClient, string? name, string? email)
@@ -159,7 +167,7 @@ namespace Services
         {
             bool result = await SelectIdAsync(idClient);
 
-            if(result)
+            if(!result)
             {
                 return false;
             }
