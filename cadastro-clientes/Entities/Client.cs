@@ -10,11 +10,15 @@ namespace Entities
         public string Nome { get; set; }
         public string Email { get; set; }
 
-        public Client()
+        //DECLARA UM CAMPO PRIVADO QUE ARMAZENA UMA INSTÂNCIA DA CLASSE "ClientService"
+        private readonly ClientService _clientService;
+
+        public Client(ClientService clientService)
         {
+            _clientService = clientService;
         }
 
-        public Client(string name, string email)
+        public Client(string name, string email, ClientService clientService) : this(clientService)
         {
             Nome = name;
             Email = email;
@@ -23,7 +27,6 @@ namespace Entities
         public async Task AdicionarClienteAsync()
         {
             Console.Clear();
-            ClientService clientService = new ClientService();
 
             Console.Write("INSIRA O NOME DO CLIENTE: ");
             string name = Console.ReadLine();
@@ -41,20 +44,16 @@ namespace Entities
                 //VALIDA O EMAIL ATRAVÉS DA FUNÇÃO "ValidarEmail" DA CLASSE "ValidationHelper" CRIADA NA PASTA "Utils"
                 if (ValidationHelper.ValidarEmail(email))
                 {
-                    Client client = new Client(name, email);
+                    var client = new Client(name, email, _clientService);
 
                     try
                     {
-                        var response = await clientService.InsertAsync(client);
+                        var response = await _clientService.InsertAsync(client);
 
-                        if (response)
-                        {
-                            Console.WriteLine("CLIENTE INSERIDO COM SUCESSO.");
-                        }
-                        else
-                        {
-                            Console.WriteLine("EMAIL JÁ CADASTRADO!");
-                        }
+                        //ESTRUTURA CONDICIONAL TERNÁRIA DO C#
+                        //SE "response" FOR "true", A MENSAGEM "CLIENTE INSERIDO COM SUCESSO." SERÁ EXIBIDA
+                        //SE "response" FOR "false", A MENSAGEM "EMAIL JÁ CADASTRADO!" SERÁ EXIBIDA
+                        Console.WriteLine(response ? "CLIENTE INSERIDO COM SUCESSO." : "EMAIL JÁ CADASTRADO!");
                     }
                     catch (MySqlException e)
                     {
@@ -70,17 +69,15 @@ namespace Entities
             {
                 Console.WriteLine("É OBRIGATÓRIO O PREENCHIMENTO DO NOME E EMAIL DO CLIENTE!");
             }
-            Console.WriteLine();
         }
 
-        public async Task VisualizarClienteAsync()
+        public async Task VisualizarClientesAsync()
         {
             Console.Clear();
-            ClientService clientService = new ClientService();
 
-            var clients = await clientService.SelectClientsAsync();
+            var clients = await _clientService.SelectClientsAsync();
 
-            if (clients.Count == 0)
+            if (!clients.Any()) //VERIFICA SE A COLEÇÃO TEM ELEMENTOS
             {
                 Console.WriteLine("NENHUM CLIENT ENCONTRADO!");
             }
@@ -94,10 +91,9 @@ namespace Entities
             }
         }
 
-        public async Task EditarClienteAsync()
+        public async Task AtualizarClienteAsync()
         {
             Console.Clear();
-            ClientService clientService = new ClientService();
 
             Console.Write("INSIRA O ID DO CLIENTE QUE DESEJA EDITAR: ");
 
@@ -107,7 +103,7 @@ namespace Entities
 
                 try
                 {
-                    var response = await clientService.SelectIdAsync(idClient);
+                    var response = await _clientService.SelectIdAsync(idClient);
 
                     if (response)
                     {
@@ -151,7 +147,7 @@ namespace Entities
                             {
                                 if (!string.IsNullOrEmpty(email) && ValidationHelper.ValidarEmail(email))
                                 {
-                                    var responseSelectEmail = await clientService.SelectEmailAsync(email);
+                                    var responseSelectEmail = await _clientService.SelectEmailAsync(email);
 
                                     if (!responseSelectEmail)
                                     {
@@ -166,16 +162,8 @@ namespace Entities
                                 }
                             }
 
-                            var responseUpdate = await clientService.UpdateAsync(idClient, name, email);
-
-                            if (responseUpdate)
-                            {
-                                Console.WriteLine("CLIENTE ATUALIZADO");
-                            }
-                            else
-                            {
-                                Console.WriteLine("ERRO AO ATUALIZAR CLIENTE!");
-                            }
+                            var responseUpdate = await _clientService.UpdateAsync(idClient, name, email);
+                            Console.WriteLine(responseUpdate ? "CLIENTE ATUALIZADO" : "ERRO AO ATUALIZAR CLIENTE!");
                         }
                         else
                         {
@@ -202,7 +190,6 @@ namespace Entities
         public async Task ExcluirClienteAsync()
         {
             Console.Clear();
-            ClientService clientService = new ClientService();
 
             Console.Write("INSIRA O ID DO CLIENTE: ");
 
@@ -212,16 +199,8 @@ namespace Entities
 
                 try
                 {
-                    var response = await clientService.DeleteAsync(idClient);
-
-                    if (response)
-                    {
-                        Console.WriteLine("CIENTE EXCLUIDO COM SUCESSO.");
-                    }
-                    else
-                    {
-                        Console.WriteLine("ID DO CLIENTE NÃO ENCONTRADO!");
-                    }
+                    var response = await _clientService.DeleteAsync(idClient);
+                    Console.WriteLine(response ? "CLIENTE EXCLUIDO COM SUCESSO" : "ID DO CLIENTE NÃO ENCONTRADO!");
                 }
                 catch (MySqlException e)
                 {
@@ -233,7 +212,6 @@ namespace Entities
                 Console.WriteLine();
                 Console.WriteLine("APENAS NÚMERO!");
             }
-            Console.WriteLine();
         }
     }
 }

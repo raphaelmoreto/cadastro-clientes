@@ -3,183 +3,155 @@ using Repository;
 using Dapper;
 using System.Data;
 using System.Text;
+using MySqlX.XDevAPI.Common;
 
 namespace Services
 {
     internal class ClientService
     {
         //OBTEM UMA CONEXÃO COM O BANCO DE DADOS ATRAVÉS DA CLASSE "DBConnection"
-        private readonly DBConnection dbConnection;
+        private readonly DBConnection _dbConnection;
 
         //PREPARANDO A CLASSE PARA SE CONECTAR AO BANCO DE DADOS
         public ClientService()
         {
-            dbConnection = new DBConnection();
+            _dbConnection = new DBConnection();
         }
 
         public async Task<bool> SelectEmailAsync(string email)
         {
-            bool result = false;
+            using IDbConnection db = _dbConnection.GetConnection();
+            
+            var sb = new StringBuilder();
+            sb.AppendLine("SELECT email");
+            sb.AppendLine("FROM cliente");
+            sb.AppendLine("WHERE email = @email");
 
-            using (IDbConnection db = dbConnection.GetConnection())
+            var parameters = new
             {
-                var sb = new StringBuilder();
-                sb.AppendLine("SELECT email");
-                sb.AppendLine("FROM cliente");
-                sb.AppendLine("WHERE email = @email");
+                email,
+            };
 
-                var parameters = new
-                {
-                    email = email,
-                };
-
-                db.Open();
-                string? row = await db.QuerySingleOrDefaultAsync<string>(sb.ToString(), parameters);
-                db.Close();
-
-                if (string.IsNullOrEmpty(row))
-                {
-                    result = true;
-                }
-            }
+            //O "is null" NO FINAL DA LINHA VERIFICA SE O RESULTADO DA QUERY É "null"
+            bool result = db.ExecuteScalarAsync<int?>(sb.ToString(), parameters) is null;
             return result;
         }
 
         public async Task<bool> SelectIdAsync(int idClient)
         {
-            var result = false;
+            using IDbConnection db = _dbConnection.GetConnection();
+            
+            var sb = new StringBuilder();
+            sb.AppendLine("SELECT id");
+            sb.AppendLine("FROM cliente");
+            sb.AppendLine("WHERE id = @id");
 
-            using (IDbConnection db = dbConnection.GetConnection())
+            var parameters = new
             {
-                var sb = new StringBuilder();
-                sb.AppendLine("SELECT id");
-                sb.AppendLine("FROM cliente");
-                sb.AppendLine("WHERE id = @id");
+                id = idClient,
+            };
 
-                var parameters = new
-                {
-                    id = idClient,
-                };
-
-                db.Open();
-                int? row = db.QuerySingleOrDefault<int?>(sb.ToString(), parameters);
-                db.Close();
-
-                if (row.HasValue)
-                {
-                    result = true;
-                }
-            }
+            bool result = db.ExecuteScalarAsync<int?>(sb.ToString(), parameters) is null;
             return result;
-        }
+    }
 
         public async Task<bool> InsertAsync(Client client)
         {
-            bool result = await SelectEmailAsync(client.Email);
+            bool response = await SelectEmailAsync(client.Email);
 
-            if (result)
+            if (response)
             {
-                //O "using" GARANTE QUE A CONEXÃO COM O BANCO D E DADOS SERÁ ENCERRADO APÓS O USO
-                using (IDbConnection db = dbConnection.GetConnection())
-                {
-                    var sb = new StringBuilder();
-                    sb.AppendLine("INSERT cliente (nome, email)");
-                    sb.AppendLine("          VALUES (@nome, @email)");
-
-                    var parameters = new
-                    {
-                        nome = client.Nome,
-                        email = client.Email
-                    };
-
-                    db.Open();
-
-                    //VERIFICA SE O NÚMERO DE LINHAS É MAIOR QUE 0. SE FOR, IRÁ ATRIBUIR "true" NA VARIÁVEL
-                    //O MÉTODO "Execute()" DEVE SER UTILIZADO APENAS PARA "INSERT", "UPDATE" OU "DELETE"
-                    result = db.Execute(sb.ToString(), parameters) > 0;
-
-                    db.Close();
-                }
+                return false;
             }
+
+            //O "using" GARANTE QUE A CONEXÃO COM O BANCO D E DADOS SERÁ ENCERRADO APÓS O USO
+            using IDbConnection db = _dbConnection.GetConnection();
+
+            var sb = new StringBuilder();
+            sb.AppendLine("INSERT cliente (nome, email)");
+            sb.AppendLine("          VALUES (@nome, @email)");
+
+            var parameters = new
+            {
+                nome = client.Nome,
+                email = client.Email
+            };
+
+            //VERIFICA SE O NÚMERO DE LINHAS É MAIOR QUE 0
+            //O MÉTODO "Execute()" DEVE SER UTILIZADO APENAS PARA "INSERT", "UPDATE" OU "DELETE"
+            bool result = db.Execute(sb.ToString(), parameters) > 0;
             return result;
         }
 
-        public async Task<List<Client>> SelectClientsAsync()
+        public async Task<IEnumerable<Client>> SelectClientsAsync()
         {
-            List<Client> list;
+            using IDbConnection db = _dbConnection.GetConnection();
+            
+            var sb = new StringBuilder();
+            sb.AppendLine("SELECT id,");
+            sb.AppendLine("            nome,");
+            sb.AppendLine("            email");
+            sb.AppendLine("FROM cliente");
 
-            using (IDbConnection db = dbConnection.GetConnection())
-            {
-                var sb = new StringBuilder();
-                sb.AppendLine("SELECT id, nome, email");
-                sb.AppendLine("FROM cliente");
-
-                db.Open();
-                var result = await db.QueryAsync<Client>(sb.ToString());
-                list = result.ToList();
-                db.Close();
-            }
-                return list;
+            var result = await db.QueryAsync<Client>(sb.ToString());
+            return result;
         }
 
         public async Task<bool> UpdateAsync(int idClient, string? name, string? email)
         {
             bool result = false;
 
-            using (IDbConnection db = dbConnection.GetConnection())
+            using IDbConnection db = _dbConnection.GetConnection();
+       
+            var sb = new StringBuilder();
+            object parameters;
+
+            //VERIFICA SE O "name" É DIFERENTE DE "null" E SE O "email" É "null"
+            if (!string.IsNullOrEmpty(name) && string.IsNullOrEmpty(email))
             {
-                var sb = new StringBuilder();
-                object parameters;
+                sb.AppendLine("UPDATE cliente");
+                sb.AppendLine("SET nome = @nome");
+                sb.AppendLine("WHERE id = @id");
 
-                //VERIFICA SE O "name" É DIFERENTE DE "null" E SE O "email" É "null"
-                if (!string.IsNullOrEmpty(name) && string.IsNullOrEmpty(email))
+                parameters = new
                 {
-                    sb.AppendLine("UPDATE cliente");
-                    sb.AppendLine("SET nome = @nome");
-                    sb.AppendLine("WHERE id = @id");
-
-                    parameters = new
-                    {
-                        nome = name,
-                        id = idClient
-                    };
-                }
-                //VERIFICA SE O "email" É DIFERENTE DE "null" E SE O "name" É "null"
-                else if (string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(email))
-                {
-                    sb.AppendLine("UPDATE cliente");
-                    sb.AppendLine("SET email = @email");
-                    sb.AppendLine("WHERE id = @id");
-
-                    parameters = new
-                    {
-                        email = email,
-                        id = idClient
-                    };
-                }
-                //VERIFICA SE AMBOS AS VARIÁVEIS É DIFERENTE DE "null"
-                else if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(email))
-                {
-                    sb.AppendLine("UPDATE cliente");
-                    sb.AppendLine("SET nome = @nome, email = @email");
-                    sb.AppendLine("WHERE id = @id");
-
-                    parameters = new
-                    {
-                        nome = name,
-                        email = email,
-                        id = idClient
-                    };
-                }
-                else
-                {
-                    return result;
-                }
-
-                db.Open();
-                result = db.Execute(sb.ToString(), parameters) > 0;
-                db.Close();
+                    nome = name,
+                    id = idClient
+                };
             }
+            //VERIFICA SE O "email" É DIFERENTE DE "null" E SE O "name" É "null"
+            else if (string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(email))
+            {
+                sb.AppendLine("UPDATE cliente");
+                sb.AppendLine("SET email = @email");
+                sb.AppendLine("WHERE id = @id");
+
+                parameters = new
+                {
+                    email = email,
+                    id = idClient
+                };
+            }
+            //VERIFICA SE AMBOS AS VARIÁVEIS É DIFERENTE DE "null"
+            else if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(email))
+            {
+                sb.AppendLine("UPDATE cliente");
+                sb.AppendLine("SET nome = @nome, email = @email");
+                sb.AppendLine("WHERE id = @id");
+
+                parameters = new
+                {
+                    nome = name,
+                    email = email,
+                    id = idClient
+                };
+            }
+            else
+            {
+                return result;
+            }
+
+            result = db.Execute(sb.ToString(), parameters) > 0;
             return result;
         }
 
@@ -187,24 +159,23 @@ namespace Services
         {
             bool result = await SelectIdAsync(idClient);
 
-            if (result)
+            if(result)
             {
-                using (IDbConnection db = dbConnection.GetConnection())
-                {
-                    var sb = new StringBuilder();
-                    sb.AppendLine("DELETE FROM cliente");
-                    sb.AppendLine("WHERE id = @id");
-
-                    var parameters = new
-                    {
-                        id = idClient,
-                    };
-
-                    db.Open();
-                    result = db.Execute(sb.ToString(), parameters) > 0;
-                    db.Close();
-                }
+                return false;
             }
+
+            using IDbConnection db = _dbConnection.GetConnection();
+                
+            var sb = new StringBuilder();
+            sb.AppendLine("DELETE FROM cliente");
+            sb.AppendLine("WHERE id = @id");
+
+            var parameters = new
+            {
+                id = idClient,
+            };
+
+            result = db.Execute(sb.ToString(), parameters) > 0;
             return result;
         }
     }
