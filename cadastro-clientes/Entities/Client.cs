@@ -79,7 +79,7 @@ namespace Entities
         {
             Console.Clear();
 
-            var clients = await _clientService.SelectClientsAsync();
+            var clients = (await _clientService.SelectClientsAsync()).OrderBy(c => c.Nome);
 
             if (!clients.Any()) //VERIFICA SE A COLEÇÃO TEM ELEMENTOS
             {
