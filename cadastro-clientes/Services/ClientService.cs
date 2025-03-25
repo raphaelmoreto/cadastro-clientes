@@ -23,17 +23,12 @@ namespace Services
             using IDbConnection db = _dbConnection.GetConnection();
             
             var sb = new StringBuilder();
-            sb.AppendLine("SELECT email");
+            sb.AppendLine("SELECT COUNT(email)");
             sb.AppendLine("FROM cliente");
             sb.AppendLine("WHERE email = @email");
 
-            var parameters = new
-            {
-                email,
-            };
-
-            var result = db.QueryFirstOrDefault<string>(sb.ToString(), parameters);
-            return result != null;
+            int result = await db.QueryFirstOrDefaultAsync<int>(sb.ToString(), param: new { email });
+            return result > 0;
         }
 
         public async Task<bool> SelectIdAsync(int idClient)
@@ -41,18 +36,12 @@ namespace Services
             using IDbConnection db = _dbConnection.GetConnection();
             
             var sb = new StringBuilder();
-            sb.AppendLine("SELECT id");
+            sb.AppendLine("SELECT COUNT(id)");
             sb.AppendLine("FROM cliente");
             sb.AppendLine("WHERE id = @id");
 
-            var parameters = new
-            {
-                id = idClient,
-            };
-
-            int? id = db.QueryFirstOrDefault<int?>(sb.ToString(), parameters);
-
-            return id.HasValue;
+            int id = await db.QueryFirstOrDefaultAsync<int>(sb.ToString(), param: new { id = idClient });
+            return id > 0;
         }
 
         public async Task<bool> InsertAsync(Client client)
@@ -71,16 +60,10 @@ namespace Services
             sb.AppendLine("INSERT cliente (nome, email)");
             sb.AppendLine("          VALUES (@nome, @email)");
 
-            var parameters = new
-            {
-                nome = client.Nome,
-                email = client.Email
-            };
-
             //VERIFICA SE O NÚMERO DE LINHAS É MAIOR QUE 0
             //O MÉTODO "Execute()" DEVE SER UTILIZADO APENAS PARA "INSERT", "UPDATE" OU "DELETE"
-            bool result = db.Execute(sb.ToString(), parameters) > 0;
-            return result;
+            int result = await db.ExecuteAsync(sb.ToString(), param: new {client.Nome, client.Email});
+            return result > 0;
         }
 
         public async Task<IEnumerable<Client>> SelectClientsAsync()
@@ -91,11 +74,11 @@ namespace Services
 
                 var sb = new StringBuilder();
                 sb.AppendLine("SELECT id,");
-                sb.AppendLine("            nome,");
-                sb.AppendLine("            email");
+                sb.AppendLine("           nome,");
+                sb.AppendLine("           email");
                 sb.AppendLine("FROM cliente");
 
-                var result = db.Query<Client>(sb.ToString());
+                var result = await db.QueryAsync<Client>(sb.ToString());
                 return result;
             }
             catch (Exception e)
@@ -107,8 +90,6 @@ namespace Services
 
         public async Task<bool> UpdateAsync(int idClient, string? name, string? email)
         {
-            bool result = false;
-
             using IDbConnection db = _dbConnection.GetConnection();
        
             var sb = new StringBuilder();
@@ -144,7 +125,8 @@ namespace Services
             else if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(email))
             {
                 sb.AppendLine("UPDATE cliente");
-                sb.AppendLine("SET nome = @nome, email = @email");
+                sb.AppendLine("SET nome = @nome,");
+                sb.AppendLine("      email = @email");
                 sb.AppendLine("WHERE id = @id");
 
                 parameters = new
@@ -156,35 +138,30 @@ namespace Services
             }
             else
             {
-                return result;
+                return false;
             }
 
-            result = db.Execute(sb.ToString(), parameters) > 0;
-            return result;
+            int result = await db.ExecuteAsync(sb.ToString(), parameters);
+            return result > 0;
         }
 
         public async Task<bool> DeleteAsync(int idClient)
         {
-            bool result = await SelectIdAsync(idClient);
+            bool consult = await SelectIdAsync(idClient);
 
-            if(!result)
+            if(!consult)
             {
                 return false;
             }
 
             using IDbConnection db = _dbConnection.GetConnection();
-                
+
             var sb = new StringBuilder();
             sb.AppendLine("DELETE FROM cliente");
             sb.AppendLine("WHERE id = @id");
 
-            var parameters = new
-            {
-                id = idClient,
-            };
-
-            result = db.Execute(sb.ToString(), parameters) > 0;
-            return result;
+            int response = await db.ExecuteAsync(sb.ToString(), param: new { id = idClient });
+            return response > 0;
         }
     }
 }

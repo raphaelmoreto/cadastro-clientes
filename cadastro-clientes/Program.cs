@@ -19,16 +19,16 @@ namespace cadastro_clientes
                 switch (opcao)
                 {
                     case 1:
-                        client.AdicionarClienteAsync();
+                        await client.AdicionarClienteAsync();
                         break;
                     case 2:
-                        client.VisualizarClientesAsync();
+                        await client.VisualizarClientesAsync();
                         break;
                     case 3:
-                        client.AtualizarClienteAsync();
+                        await client.AtualizarClienteAsync();
                         break;
                     case 4:
-                        client.ExcluirClienteAsync();
+                        await client.ExcluirClienteAsync();
                         break;
                     case 5:
                         Console.WriteLine();
