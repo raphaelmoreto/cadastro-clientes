@@ -33,12 +33,12 @@ namespace Entities
             Console.Clear();
 
             Console.Write("INSIRA O NOME DO CLIENTE: ");
-            string name = Console.ReadLine();
+            string name = Console.ReadLine()!;
 
             Console.WriteLine();
 
             Console.Write("INSIRA O EMAIL DO CLIENTE: ");
-            string email = Console.ReadLine();
+            string email = Console.ReadLine()!;
 
             //O MÉTODO "string.IsNullOrEmpty" VERIFICA SE A STRING É "null" OU VÁZIA ("")
             if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(email))
@@ -121,7 +121,7 @@ namespace Entities
                         {
                             Console.Clear();
 
-                            string name = null, email = null;
+                            string? name = null, email = null;
 
                             switch (opcao)
                             {
